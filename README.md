@@ -1,0 +1,1 @@
+# langchain-slack-app
