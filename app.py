@@ -67,21 +67,38 @@ class SlackStreamingCallbackHandler(BaseCallbackHandler):
     def __init__(self, channel, ts):
         self.channel = channel
         self.ts = ts
+        self.interval = CHAT_UPDATE_INTERVAL_SEC
+        self.update_count = 0
 
     def on_llm_new_token(self, token: str, **kwargs) -> None:
         self.message += token
 
         now = time.time()
-        if now - self.last_send_time > CHAT_UPDATE_INTERVAL_SEC:
-            self.last_send_time = now
+        if now - self.last_send_time > self.interval:
             app.client.chat_update(
                 channel=self.channel,
                 ts=self.ts,
                 text=f"{self.message}...",
             )
+            self.last_send_time = now
+            self.update_count += 1
+
+            if self.update_count / 10 > self.interval:
+                self.interval = self.interval * 2
 
     def on_llm_end(self, response: LLMResult, **kwargs: Any) -> Any:
-        app.client.chat_update(channel=self.channel, ts=self.ts, text=self.message)
+        message_context = "OpenAI APIで生成される情報は不正確または不適切な場合があります。"
+        message_blocks = [
+            {"type": "section", "text": {"type": "mrkdwn", "text": self.message}},
+            {"type": "divider"},
+            {
+                "type": "context",
+                "elements": [{"type": "mrkdwn", "text": message_context}],
+            },
+        ]
+        app.client.chat_update(
+            channel=self.channel, ts=self.ts, text=self.message, blocks=message_blocks
+        )
 
 
 def just_ack(ack):
