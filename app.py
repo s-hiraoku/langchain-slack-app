@@ -32,7 +32,7 @@ def handle_mention(event, say):
     message = re.sub("<@.*?>", "", event["text"])
 
     id_ts = event["ts"]
-    if "thred-ts" in event:
+    if "thread-ts" in event:
         id_ts = event["thread_ts"]
 
     result = say("\n\nTyping...", thread_ts=thread_ts)
